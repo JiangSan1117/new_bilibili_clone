@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flutter API 在線測試</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>Flutter API 在線測試</h1>
+    <p>使用HTTP服務器: <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></p>
+    
+    <button onclick="testRegister()">測試註冊API</button>
+    <button onclick="testLogin()">測試登入API</button>
+    <button onclick="testHealth()">測試健康檢查</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testRegister() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>測試註冊API中...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: '123456',
+                        nickname: '測試用戶',
+                        realName: '王小明',
+                        idCardNumber: 'A123456789'
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>✅ 註冊API測試成功！</h3>
+                    <p>狀態碼: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ 註冊API測試失敗</h3>
+                    <p>錯誤: ${error.message}</p>
+                `;
+            }
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>測試登入API中...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: '123456'
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>✅ 登入API測試成功！</h3>
+                    <p>狀態碼: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ 登入API測試失敗</h3>
+                    <p>錯誤: ${error.message}</p>
+                `;
+            }
+        }
+
+        async function testHealth() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>測試健康檢查中...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8080/health');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>✅ 健康檢查成功！</h3>
+                    <p>狀態碼: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ 健康檢查失敗</h3>
+                    <p>錯誤: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+

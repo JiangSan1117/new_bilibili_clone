@@ -1,0 +1,30 @@
+{
+  "name": "new_bilibili_clone",
+  "version": "1.0.0",
+  "description": "一個功能完整的社交分享應用，類似於 Bilibili 的社區功能，專注於內容分享、交換和共同創作。",
+  "main": "simple_http_server.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "start": "node production_server.js",
+    "dev": "node memory_server.js",
+    "memory": "node memory_server.js",
+    "local": "node local_mongodb_server.js",
+    "mock": "node stable_server.js",
+    "production": "node production_server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.1"
+  }
+}

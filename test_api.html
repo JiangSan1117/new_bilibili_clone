@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API 測試</title>
+</head>
+<body>
+    <h1>API 測試</h1>
+    <button onclick="testPosts()">測試文章API</button>
+    <button onclick="testLogin()">測試登入API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testPosts() {
+            try {
+                const response = await fetch('http://127.0.0.1:8080/api/posts?page=1&limit=3');
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                console.log('文章API測試成功:', data);
+            } catch (error) {
+                document.getElementById('result').innerHTML = '錯誤: ' + error.message;
+                console.error('文章API測試失敗:', error);
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const response = await fetch('http://127.0.0.1:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test1@example.com',
+                        password: '123456'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                console.log('登入API測試成功:', data);
+            } catch (error) {
+                document.getElementById('result').innerHTML = '錯誤: ' + error.message;
+                console.error('登入API測試失敗:', error);
+            }
+        }
+    </script>
+</body>
+</html>

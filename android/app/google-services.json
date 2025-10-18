@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "157330713157",
+    "project_id": "family-location-chat",
+    "storage_bucket": "family-location-chat.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157330713157:android:your-app-id",
+        "android_client_info": {
+          "package_name": "com.example.new_bilibili_clone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "157330713157-your-client-id.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnjeH6klQaf4PgbxP1hMFxEXQveEE8a5g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "157330713157-your-web-client-id.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

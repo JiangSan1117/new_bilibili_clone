@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>手機測試頁面</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .result { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .error { background-color: #ffebee; color: #c62828; }
+        .success { background-color: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>📱 手機API測試</h1>
+    <p>測試API地址: <code>http://192.168.1.120:8080</code></p>
+    
+    <div>
+        <button onclick="testPosts()">📰 測試文章API</button>
+        <button onclick="testLogin()">🔐 測試登入API</button>
+        <button onclick="testNotifications()">🔔 測試通知API</button>
+        <button onclick="testSearch()">🔍 測試搜索API</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://192.168.1.120:8080/api';
+        
+        function showResult(title, data, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="result ${isError ? 'error' : 'success'}">
+                    <h3>${title}</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        async function testPosts() {
+            try {
+                const response = await fetch(`${API_BASE}/posts?page=1&limit=3`);
+                const data = await response.json();
+                showResult('✅ 文章API測試成功', data);
+                console.log('文章API測試成功:', data);
+            } catch (error) {
+                showResult('❌ 文章API測試失敗', { error: error.message }, true);
+                console.error('文章API測試失敗:', error);
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: '123456'
+                    })
+                });
+                const data = await response.json();
+                showResult('✅ 登入API測試成功', data);
+                console.log('登入API測試成功:', data);
+            } catch (error) {
+                showResult('❌ 登入API測試失敗', { error: error.message }, true);
+                console.error('登入API測試失敗:', error);
+            }
+        }
+
+        async function testNotifications() {
+            try {
+                const response = await fetch(`${API_BASE}/notifications`);
+                const data = await response.json();
+                showResult('✅ 通知API測試成功', data);
+                console.log('通知API測試成功:', data);
+            } catch (error) {
+                showResult('❌ 通知API測試失敗', { error: error.message }, true);
+                console.error('通知API測試失敗:', error);
+            }
+        }
+
+        async function testSearch() {
+            try {
+                const response = await fetch(`${API_BASE}/posts/search?query=測試&page=1&limit=5`);
+                const data = await response.json();
+                showResult('✅ 搜索API測試成功', data);
+                console.log('搜索API測試成功:', data);
+            } catch (error) {
+                showResult('❌ 搜索API測試失敗', { error: error.message }, true);
+                console.error('搜索API測試失敗:', error);
+            }
+        }
+
+        // 頁面加載時自動測試文章API
+        window.onload = function() {
+            testPosts();
+        };
+    </script>
+</body>
+</html>

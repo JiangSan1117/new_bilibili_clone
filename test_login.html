@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>登入測試</title>
+</head>
+<body>
+    <h1>登入測試</h1>
+    <div>
+        <button onclick="testLogin('test@example.com')">測試 test@example.com</button>
+        <button onclick="testLogin('test1@example.com')">測試 test1@example.com</button>
+        <button onclick="testLogin('test2@example.com')">測試 test2@example.com</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin(email) {
+            try {
+                const response = await fetch('http://127.0.0.1:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: '123456'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = 
+                    `<h3>${email} 登入結果:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                console.log('登入測試成功:', data);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<h3>${email} 登入錯誤:</h3><p>${error.message}</p>`;
+                console.error('登入測試失敗:', error);
+            }
+        }
+    </script>
+</body>
+</html>
