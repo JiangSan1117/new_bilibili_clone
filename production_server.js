@@ -33,13 +33,24 @@ app.get('/api/health', (req, res) => {
 const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bilibili_clone';
+    
+    if (!mongoURI || mongoURI === 'mongodb://localhost:27017/bilibili_clone') {
+      console.error('❌ MONGODB_URI 環境變數未設置');
+      process.exit(1);
+    }
+    
+    console.log('🔗 正在連接 MongoDB Atlas...');
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 30000,
     });
     console.log('🗄️ MongoDB Atlas 連接成功');
   } catch (error) {
-    console.error('❌ MongoDB 連接失敗:', error);
+    console.error('❌ MongoDB 連接失敗:', error.message);
+    console.error('詳細錯誤:', error);
     process.exit(1);
   }
 };
