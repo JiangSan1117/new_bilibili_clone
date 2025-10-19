@@ -8,7 +8,7 @@ import '../models/user_model.dart';
 import '../models/post_model.dart';
 
 class RealApiService {
-  static const String baseUrl = 'http://192.168.1.120:8080/api';
+  static const String baseUrl = 'https://bilibili-backend.onrender.com/api';
   static const String tokenKey = 'auth_token';
   
   // 獲取請求頭
