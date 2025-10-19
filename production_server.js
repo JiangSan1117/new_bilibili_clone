@@ -14,8 +14,61 @@ const PORT = process.env.PORT || 8080;
 
 // 內存數據庫（備用）
 const memoryDB = {
-  users: [],
-  posts: [],
+  users: [
+    {
+      _id: 'test_user_1',
+      email: 'test@example.com',
+      password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password: "password"
+      nickname: '測試用戶1',
+      avatar: 'https://picsum.photos/seed/test1/100',
+      levelNum: 1,
+      isVerified: false,
+      posts: 0,
+      follows: 0,
+      friends: 0,
+      createdAt: new Date()
+    }
+  ],
+  posts: [
+    {
+      _id: 'post_1',
+      title: '測試文章1',
+      content: '這是測試文章內容',
+      author: '測試用戶1',
+      authorId: 'test_user_1',
+      category: '測試',
+      mainTab: '分享',
+      type: '分享',
+      city: '台北市',
+      tags: [],
+      images: ['https://picsum.photos/seed/test1/400'],
+      videos: [],
+      likes: 11,
+      comments: 7,
+      views: 100,
+      shares: 8,
+      createdAt: new Date()
+    },
+    {
+      _id: 'post_2',
+      title: '測試文章2',
+      content: '這是另一篇測試文章',
+      author: '測試用戶1',
+      authorId: 'test_user_1',
+      category: '測試',
+      mainTab: '共享',
+      type: '共享',
+      city: '高雄市',
+      tags: [],
+      images: ['https://picsum.photos/seed/test2/400'],
+      videos: [],
+      likes: 5,
+      comments: 1,
+      views: 50,
+      shares: 0,
+      createdAt: new Date()
+    }
+  ],
   follows: [],
   messages: [],
   notifications: []
@@ -291,24 +344,50 @@ app.get('/api/posts', async (req, res) => {
     const { page = 1, limit = 20, mainTab, category } = req.query;
     const skip = (page - 1) * limit;
 
-    let query = {};
-    if (mainTab) query.mainTab = mainTab;
-    if (category) query.category = category;
+    if (isMongoConnected()) {
+      // 使用 MongoDB
+      let query = {};
+      if (mainTab) query.mainTab = mainTab;
+      if (category) query.category = category;
 
-    const posts = await Post.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+      const posts = await Post.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
 
-    const total = await Post.countDocuments(query);
+      const total = await Post.countDocuments(query);
 
-    res.json({
-      success: true,
-      posts,
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit)
-    });
+      res.json({
+        success: true,
+        posts,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      });
+    } else {
+      // 使用內存數據庫
+      let filteredPosts = memoryDB.posts;
+      
+      if (mainTab) {
+        filteredPosts = filteredPosts.filter(post => post.mainTab === mainTab);
+      }
+      if (category) {
+        filteredPosts = filteredPosts.filter(post => post.category === category);
+      }
+
+      const total = filteredPosts.length;
+      const posts = filteredPosts
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(skip, skip + parseInt(limit));
+
+      res.json({
+        success: true,
+        posts,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      });
+    }
   } catch (error) {
     console.error('獲取文章列表錯誤:', error);
     res.status(500).json({ error: '獲取文章列表失敗' });
