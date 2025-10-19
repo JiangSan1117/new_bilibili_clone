@@ -12,6 +12,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// 內存數據庫（備用）
+const memoryDB = {
+  users: [],
+  posts: [],
+  follows: [],
+  messages: [],
+  notifications: []
+};
+
 // 中間件
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
@@ -25,18 +34,19 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    database: isMongoConnected() ? 'MongoDB Atlas' : 'Memory Database'
   });
 });
 
 // 連接MongoDB Atlas
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/bilibili_clone';
+    const mongoURI = process.env.MONGODB_URI;
     
-    if (!mongoURI || mongoURI === 'mongodb://localhost:27017/bilibili_clone') {
-      console.error('❌ MONGODB_URI 環境變數未設置');
-      process.exit(1);
+    if (!mongoURI) {
+      console.log('⚠️ MONGODB_URI 環境變數未設置，使用內存數據庫');
+      return;
     }
     
     console.log('🔗 正在連接 MongoDB Atlas...');
@@ -51,7 +61,7 @@ const connectDB = async () => {
   } catch (error) {
     console.error('❌ MongoDB 連接失敗:', error.message);
     console.error('詳細錯誤:', error);
-    process.exit(1);
+    console.log('⚠️ 使用內存數據庫作為備用');
   }
 };
 
@@ -128,6 +138,11 @@ const notificationSchema = new mongoose.Schema({
 });
 
 const Notification = mongoose.model('Notification', notificationSchema);
+
+// 檢查數據庫連接狀態
+const isMongoConnected = () => {
+  return mongoose.connection.readyState === 1;
+};
 
 // JWT認證中間件
 const authenticateToken = (req, res, next) => {
