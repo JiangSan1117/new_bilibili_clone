@@ -74,11 +74,31 @@ const memoryDB = {
   notifications: []
 };
 
-// 中間件
+// 中間件 - CORS 配置
+const allowedOrigins = [
+  'https://merry-kulfi-eb044d.netlify.app',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  process.env.FRONTEND_URL
+].filter(Boolean); // 過濾掉 undefined
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true
+  origin: function(origin, callback) {
+    // 允許沒有 origin 的請求（如 Postman、curl）
+    if (!origin) return callback(null, true);
+    
+    // 允許所有 netlify.app 域名和白名單域名
+    if (origin.includes('netlify.app') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
