@@ -266,7 +266,7 @@ app.post('/api/auth/register', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({
+    res.status(201).json({
       success: true,
       token,
       user: {
@@ -451,6 +451,64 @@ app.post('/api/posts', authenticateToken, async (req, res) => {
 });
 
 // ===== 用戶API =====
+
+// 獲取用戶關注列表（公開）
+app.get('/api/users/:userId/following', async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const follows = await Follow.find({ follower: req.params.userId });
+      const userIds = follows.map(f => f.following);
+      const users = await User.find({ _id: { $in: userIds } })
+        .select('nickname avatar levelNum isVerified');
+
+      res.json({
+        success: true,
+        users: users.map(u => ({
+          id: u._id,
+          nickname: u.nickname,
+          avatar: u.avatar,
+          levelNum: u.levelNum,
+          isVerified: u.isVerified
+        })),
+        total: users.length
+      });
+    } else {
+      res.json({ success: true, users: [], total: 0 });
+    }
+  } catch (error) {
+    console.error('獲取關注列表錯誤:', error);
+    res.status(500).json({ error: '獲取關注列表失敗' });
+  }
+});
+
+// 獲取用戶粉絲列表（公開）
+app.get('/api/users/:userId/followers', async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const follows = await Follow.find({ following: req.params.userId });
+      const userIds = follows.map(f => f.follower);
+      const users = await User.find({ _id: { $in: userIds } })
+        .select('nickname avatar levelNum isVerified');
+
+      res.json({
+        success: true,
+        users: users.map(u => ({
+          id: u._id,
+          nickname: u.nickname,
+          avatar: u.avatar,
+          levelNum: u.levelNum,
+          isVerified: u.isVerified
+        })),
+        total: users.length
+      });
+    } else {
+      res.json({ success: true, users: [], total: 0 });
+    }
+  } catch (error) {
+    console.error('獲取粉絲列表錯誤:', error);
+    res.status(500).json({ error: '獲取粉絲列表失敗' });
+  }
+});
 
 // 獲取用戶好友列表
 app.get('/api/users/friends', authenticateToken, async (req, res) => {
