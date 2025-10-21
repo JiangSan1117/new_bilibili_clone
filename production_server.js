@@ -444,6 +444,172 @@ app.post('/api/posts', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== 用戶API =====
+
+// 獲取用戶好友列表
+app.get('/api/users/friends', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      // 使用 MongoDB
+      const myFollows = await Follow.find({ follower: req.user.id });
+      const followingIds = myFollows.map(f => f.following);
+      
+      const theirFollows = await Follow.find({ 
+        follower: { $in: followingIds },
+        following: req.user.id 
+      });
+      
+      const friendIds = theirFollows.map(f => f.follower);
+      const friends = await User.find({ _id: { $in: friendIds } })
+        .select('nickname avatar levelNum isVerified');
+
+      res.json({
+        success: true,
+        friends: friends.map(f => ({
+          id: f._id,
+          nickname: f.nickname,
+          avatar: f.avatar,
+          levelNum: f.levelNum,
+          isVerified: f.isVerified
+        }))
+      });
+    } else {
+      // 使用內存數據庫
+      res.json({
+        success: true,
+        friends: []
+      });
+    }
+  } catch (error) {
+    console.error('獲取好友列表錯誤:', error);
+    res.status(500).json({ error: '獲取好友列表失敗' });
+  }
+});
+
+// ===== 關注API =====
+
+// 獲取我關注的人
+app.get('/api/follows/following', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const follows = await Follow.find({ follower: req.user.id });
+      const userIds = follows.map(f => f.following);
+      const users = await User.find({ _id: { $in: userIds } })
+        .select('nickname avatar levelNum isVerified');
+
+      res.json({
+        success: true,
+        users: users.map(u => ({
+          id: u._id,
+          nickname: u.nickname,
+          avatar: u.avatar,
+          levelNum: u.levelNum,
+          isVerified: u.isVerified
+        }))
+      });
+    } else {
+      res.json({ success: true, users: [] });
+    }
+  } catch (error) {
+    console.error('獲取關注列表錯誤:', error);
+    res.status(500).json({ error: '獲取關注列表失敗' });
+  }
+});
+
+// 獲取關注我的人
+app.get('/api/follows/followers', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const follows = await Follow.find({ following: req.user.id });
+      const userIds = follows.map(f => f.follower);
+      const users = await User.find({ _id: { $in: userIds } })
+        .select('nickname avatar levelNum isVerified');
+
+      res.json({
+        success: true,
+        users: users.map(u => ({
+          id: u._id,
+          nickname: u.nickname,
+          avatar: u.avatar,
+          levelNum: u.levelNum,
+          isVerified: u.isVerified
+        }))
+      });
+    } else {
+      res.json({ success: true, users: [] });
+    }
+  } catch (error) {
+    console.error('獲取粉絲列表錯誤:', error);
+    res.status(500).json({ error: '獲取粉絲列表失敗' });
+  }
+});
+
+// ===== 通知API =====
+
+// 獲取通知列表
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const { type = 'all' } = req.query;
+
+    if (isMongoConnected()) {
+      let query = { user: req.user.id };
+      if (type !== 'all') {
+        query.type = type;
+      }
+
+      const notifications = await Notification.find(query)
+        .sort({ createdAt: -1 })
+        .limit(50);
+
+      res.json({
+        success: true,
+        notifications: notifications.map(n => ({
+          id: n._id,
+          type: n.type,
+          title: n.title,
+          content: n.content,
+          isRead: n.isRead,
+          relatedUser: n.relatedUser,
+          createdAt: n.createdAt
+        }))
+      });
+    } else {
+      // 使用內存數據庫
+      res.json({
+        success: true,
+        notifications: []
+      });
+    }
+  } catch (error) {
+    console.error('獲取通知列表錯誤:', error);
+    res.status(500).json({ error: '獲取通知列表失敗' });
+  }
+});
+
+// 標記通知為已讀
+app.put('/api/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const notification = await Notification.findOneAndUpdate(
+        { _id: req.params.id, user: req.user.id },
+        { isRead: true },
+        { new: true }
+      );
+
+      if (!notification) {
+        return res.status(404).json({ error: '通知不存在' });
+      }
+
+      res.json({ success: true, notification });
+    } else {
+      res.json({ success: true });
+    }
+  } catch (error) {
+    console.error('標記通知錯誤:', error);
+    res.status(500).json({ error: '標記通知失敗' });
+  }
+});
+
 // ===== 搜索API =====
 
 // 搜索文章
