@@ -1,11 +1,23 @@
 {
-  "name": "bilibili-clone-web",
+  "name": "new_bilibili_clone",
   "version": "1.0.0",
-  "description": "Bilibili Clone Flutter Web App",
+  "description": "一個功能完整的社交分享應用，類似於 Bilibili 的社區功能，專注於內容分享、交換和共同創作。",
+  "main": "production_server.js",
   "scripts": {
-    "build": "flutter build web",
-    "vercel-build": "flutter build web"
+    "start": "node production_server.js",
+    "dev": "node production_server.js",
+    "production": "node production_server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3"
+  }
 }
