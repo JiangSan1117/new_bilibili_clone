@@ -419,11 +419,17 @@ app.post('/api/posts', authenticateToken, async (req, res) => {
   try {
     const { title, content, category, mainTab, type, city, images, videos } = req.body;
 
+    // 獲取用戶資料
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: '用戶不存在' });
+    }
+
     const post = new Post({
       title,
       content,
-      author: req.user.nickname,
-      authorId: req.user.id,
+      author: user.nickname,
+      authorId: user._id,
       category,
       mainTab,
       type,
@@ -434,7 +440,7 @@ app.post('/api/posts', authenticateToken, async (req, res) => {
 
     await post.save();
 
-    res.json({
+    res.status(201).json({
       success: true,
       post
     });

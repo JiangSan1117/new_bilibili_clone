@@ -51,8 +51,8 @@ class RealApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return {
-          'success': true,
-          'user': data, // 後端直接返回用戶數據，不需要data['user']
+          'success': data['success'] ?? true,
+          'user': data['user'], // 後端返回 {success: true, user: {...}}
         };
       } else {
         return {
