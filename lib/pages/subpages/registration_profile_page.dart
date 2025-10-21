@@ -201,16 +201,28 @@ class _RegistrationProfilePageState extends State<RegistrationProfilePage> {
       );
       
       if (result['success'] == true) {
-        // 註冊成功
+        // 註冊成功 - 自動登入
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('註冊成功！請登入您的帳戶'),
+            content: Text('註冊成功！自動登入中...'),
             backgroundColor: Colors.green,
           ),
         );
         
-        // 返回登入頁面
-        Navigator.of(context).pop();
+        // 自動登入
+        final loginResult = await RealApiService.login(
+          email: widget.email,
+          password: widget.password,
+        );
+        
+        if (loginResult['success'] == true) {
+          // 登入成功，返回兩層到主頁面
+          Navigator.of(context).pop(); // 退出註冊頁面
+          Navigator.of(context).pop(); // 退出登入頁面
+        } else {
+          // 登入失敗，返回登入頁面讓用戶手動登入
+          Navigator.of(context).pop();
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
