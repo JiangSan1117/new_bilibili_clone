@@ -458,6 +458,39 @@ app.post('/api/posts', authenticateToken, async (req, res) => {
 
 // ===== 用戶API =====
 
+// 獲取用戶公開資料（公開）
+app.get('/api/users/:userId/profile', async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const user = await User.findById(req.params.userId)
+        .select('nickname avatar bio levelNum isVerified followingCount followersCount');
+      
+      if (!user) {
+        return res.status(404).json({ error: '用戶不存在' });
+      }
+
+      res.json({
+        success: true,
+        user: {
+          id: user._id,
+          nickname: user.nickname,
+          avatar: user.avatar,
+          bio: user.bio || '',
+          levelNum: user.levelNum,
+          isVerified: user.isVerified,
+          followingCount: user.followingCount || 0,
+          followersCount: user.followersCount || 0
+        }
+      });
+    } else {
+      res.status(404).json({ error: '用戶不存在' });
+    }
+  } catch (error) {
+    console.error('獲取用戶資料錯誤:', error);
+    res.status(500).json({ error: '獲取用戶資料失敗' });
+  }
+});
+
 // 獲取用戶關注列表（公開）
 app.get('/api/users/:userId/following', async (req, res) => {
   try {
