@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
@@ -24,8 +25,17 @@ class RealApiService {
   
   // 保存令牌
   static Future<void> _saveToken(String token) async {
+    print('💾 開始保存 Token: ${token.substring(0, min(20, token.length))}...');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(tokenKey, token);
+    
+    // 驗證保存成功
+    final savedToken = prefs.getString(tokenKey);
+    if (savedToken == token) {
+      print('✅ Token 保存成功！');
+    } else {
+      print('❌ Token 保存失敗！');
+    }
   }
   
   // 清除令牌
