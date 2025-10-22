@@ -9,6 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../models/post_model.dart';
 
+// Web 專用導入
+import 'dart:html' as html show window;
+
 class RealApiService {
   static const String baseUrl = 'https://bilibili-backend.onrender.com/api';
   static const String tokenKey = 'auth_token';
@@ -43,8 +46,13 @@ class RealApiService {
   // 從 localStorage 獲取 Token（Web 專用）
   static Future<String?> _getFromLocalStorage() async {
     try {
-      // 這裡我們需要一個更直接的方法
-      // 暫時返回 null，稍後實現
+      if (kIsWeb) {
+        final token = html.window.localStorage['auth_token'];
+        if (token != null && token.isNotEmpty) {
+          print('✅ 從 localStorage 讀取到 Token');
+          return token;
+        }
+      }
       return null;
     } catch (e) {
       print('❌ localStorage 讀取失敗: $e');
@@ -58,13 +66,17 @@ class RealApiService {
       print('🔧 嘗試保存到 localStorage: ${token.substring(0, 20)}...');
       
       if (kIsWeb) {
-        // 提供手動保存的指令
-        print('🔧 請在 Console 中執行以下代碼來手動保存 Token:');
-        print('localStorage.setItem("auth_token", "$token");');
-        print('🔧 然後執行: console.log("Token 已保存:", localStorage.getItem("auth_token"));');
+        // 直接使用 dart:html 操作 localStorage
+        html.window.localStorage['auth_token'] = token;
+        print('✅ Token 已保存到 localStorage');
         
-        // 暫時跳過自動保存，讓用戶手動執行
-        print('⚠️ 請手動在 Console 中執行上述代碼');
+        // 驗證保存成功
+        final savedToken = html.window.localStorage['auth_token'];
+        if (savedToken == token) {
+          print('✅ localStorage 驗證成功');
+        } else {
+          print('❌ localStorage 驗證失敗');
+        }
       }
     } catch (e) {
       print('❌ localStorage 保存失敗: $e');
