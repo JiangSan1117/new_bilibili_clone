@@ -86,8 +86,14 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
+    console.log('🌐 CORS 檢查 - Origin:', origin);
+    console.log('🌐 CORS 檢查 - Allowed Origins:', allowedOrigins);
+    
     // 允許沒有 origin 的請求（本地文件、Postman、curl）
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('✅ CORS 允許 - 無 Origin');
+      return callback(null, true);
+    }
     
     // 允許所有 netlify.app 域名、localhost 和白名單域名
     if (origin.includes('netlify.app') || 
@@ -95,8 +101,10 @@ app.use(cors({
         origin.includes('127.0.0.1') ||
         origin.includes('file://') ||
         allowedOrigins.includes(origin)) {
+      console.log('✅ CORS 允許 - Origin:', origin);
       callback(null, true);
     } else {
+      console.log('❌ CORS 拒絕 - Origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -110,11 +118,20 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 健康檢查端點
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     database: isMongoConnected() ? 'MongoDB Atlas' : 'Memory Database'
+  });
+});
+
+// CORS 測試端點
+app.get('/api/cors-test', (req, res) => {
+  res.json({
+    message: 'CORS 測試成功',
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString()
   });
 });
 
