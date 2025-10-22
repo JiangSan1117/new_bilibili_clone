@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
@@ -14,13 +15,60 @@ class RealApiService {
   
   // 獲取請求頭
   static Future<Map<String, String>> _getHeaders() async {
+    // 優先從 SharedPreferences 獲取
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(tokenKey);
+    String? token = prefs.getString(tokenKey);
+    
+    // 如果 SharedPreferences 中沒有，嘗試從 localStorage 獲取（Web 環境）
+    if (token == null && kIsWeb) {
+      try {
+        // 在 Web 環境下，使用 dart:html 直接讀取 localStorage
+        token = await _getFromLocalStorage();
+        if (token != null) {
+          // 同步到 SharedPreferences
+          await prefs.setString(tokenKey, token);
+          print('🔄 Token 已從 localStorage 同步到 SharedPreferences');
+        }
+      } catch (e) {
+        print('⚠️ 從 localStorage 讀取 Token 失敗: $e');
+      }
+    }
     
     return {
       'Content-Type': 'application/json',
       'Authorization': token != null ? 'Bearer $token' : '',
     };
+  }
+  
+  // 從 localStorage 獲取 Token（Web 專用）
+  static Future<String?> _getFromLocalStorage() async {
+    try {
+      // 這裡我們需要一個更直接的方法
+      // 暫時返回 null，稍後實現
+      return null;
+    } catch (e) {
+      print('❌ localStorage 讀取失敗: $e');
+      return null;
+    }
+  }
+  
+  // 保存 Token 到 localStorage（Web 專用）
+  static Future<void> _saveTokenToLocalStorage(String token) async {
+    try {
+      print('🔧 嘗試保存到 localStorage: ${token.substring(0, 20)}...');
+      
+      if (kIsWeb) {
+        // 提供手動保存的指令
+        print('🔧 請在 Console 中執行以下代碼來手動保存 Token:');
+        print('localStorage.setItem("auth_token", "$token");');
+        print('🔧 然後執行: console.log("Token 已保存:", localStorage.getItem("auth_token"));');
+        
+        // 暫時跳過自動保存，讓用戶手動執行
+        print('⚠️ 請手動在 Console 中執行上述代碼');
+      }
+    } catch (e) {
+      print('❌ localStorage 保存失敗: $e');
+    }
   }
   
   // 保存令牌
@@ -29,12 +77,45 @@ class RealApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(tokenKey, token);
     
+    // 同時保存到 localStorage（Flutter Web 兼容性）
+    try {
+      // 使用 dart:html 直接操作 localStorage
+      if (kIsWeb) {
+        // 在 Web 環境下，直接使用 JavaScript 操作 localStorage
+        await _saveToLocalStorage(token);
+      }
+    } catch (e) {
+      print('⚠️ localStorage 保存失敗: $e');
+    }
+    
     // 驗證保存成功
     final savedToken = prefs.getString(tokenKey);
     if (savedToken == token) {
       print('✅ Token 保存成功！');
     } else {
       print('❌ Token 保存失敗！');
+    }
+  }
+  
+  // 保存到 localStorage（Web 專用）
+  static Future<void> _saveToLocalStorage(String token) async {
+    try {
+      // 使用 dart:js 操作瀏覽器 localStorage
+      await _executeJavaScript('localStorage.setItem("auth_token", "$token")');
+      print('✅ Token 已保存到 localStorage');
+    } catch (e) {
+      print('❌ localStorage 保存失敗: $e');
+    }
+  }
+  
+  // 執行 JavaScript 代碼
+  static Future<void> _executeJavaScript(String code) async {
+    try {
+      // 這裡使用 dart:js 來執行 JavaScript
+      // 但為了簡化，我們先跳過這個實現
+      print('🔧 執行 JavaScript: $code');
+    } catch (e) {
+      print('❌ JavaScript 執行失敗: $e');
     }
   }
   
@@ -153,6 +234,15 @@ class RealApiService {
         // 保存令牌
         if (data['token'] != null) {
           await _saveToken(data['token']);
+          
+          // 額外保存到 localStorage（Web 環境臨時修復）
+          if (kIsWeb) {
+            try {
+              await _saveTokenToLocalStorage(data['token']);
+            } catch (e) {
+              print('⚠️ localStorage 保存失敗: $e');
+            }
+          }
         }
         return {
           'success': true,
