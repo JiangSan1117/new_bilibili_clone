@@ -35,46 +35,9 @@ class _FollowPageState extends State<FollowPage> {
         _error = null;
       });
 
-      // 從內存數據庫獲取建議關注的用戶
-      // 這裡我們使用模擬數據，但可以改為真實API
-      _suggestedUsers = [
-        {
-          'id': 'test_user_2',
-          'nickname': '美食達人',
-          'avatar': 'https://picsum.photos/seed/chef/100',
-          'levelNum': 8,
-          'isVerified': true,
-          'posts': 156,
-          'followers': 2341
-        },
-        {
-          'id': 'test_user_3',
-          'nickname': '旅遊愛好者',
-          'avatar': 'https://picsum.photos/seed/travel/100',
-          'levelNum': 6,
-          'isVerified': false,
-          'posts': 89,
-          'followers': 1234
-        },
-        {
-          'id': 'test_user_4',
-          'nickname': '科技達人',
-          'avatar': 'https://picsum.photos/seed/tech/100',
-          'levelNum': 9,
-          'isVerified': true,
-          'posts': 234,
-          'followers': 4567
-        },
-        {
-          'id': 'test_user_5',
-          'nickname': '手作達人',
-          'avatar': 'https://picsum.photos/seed/craft/100',
-          'levelNum': 7,
-          'isVerified': false,
-          'posts': 67,
-          'followers': 890
-        },
-      ];
+      // 暫時不顯示推薦用戶（等待後端實現推薦API）
+      // TODO: 實現真實的用戶推薦API
+      _suggestedUsers = [];
 
       setState(() {
         _isLoading = false;
