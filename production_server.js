@@ -245,14 +245,21 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
+  console.log('🔐 JWT 驗證 - Token 存在:', token ? '是' : '否');
+  console.log('🔐 JWT 驗證 - JWT_SECRET 存在:', process.env.JWT_SECRET ? '是' : '否');
+  console.log('🔐 JWT 驗證 - JWT_SECRET 長度:', process.env.JWT_SECRET?.length || 0);
+
   if (!token) {
+    console.log('❌ JWT 驗證失敗 - 無 Token');
     return res.status(401).json({ error: '需要認證令牌' });
   }
 
   jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
     if (err) {
+      console.log('❌ JWT 驗證失敗:', err.message);
       return res.status(403).json({ error: '無效的令牌' });
     }
+    console.log('✅ JWT 驗證成功 - 用戶:', user);
     req.user = user;
     next();
   });
