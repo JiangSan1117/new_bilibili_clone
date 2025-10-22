@@ -79,16 +79,22 @@ const allowedOrigins = [
   'https://merry-kulfi-eb044d.netlify.app',
   'http://localhost:3000',
   'http://localhost:8080',
+  'http://127.0.0.1:5500', // VSCode Live Server
+  'http://localhost:5500',
   process.env.FRONTEND_URL
 ].filter(Boolean); // 過濾掉 undefined
 
 app.use(cors({
   origin: function(origin, callback) {
-    // 允許沒有 origin 的請求（如 Postman、curl）
+    // 允許沒有 origin 的請求（本地文件、Postman、curl）
     if (!origin) return callback(null, true);
     
-    // 允許所有 netlify.app 域名和白名單域名
-    if (origin.includes('netlify.app') || allowedOrigins.includes(origin)) {
+    // 允許所有 netlify.app 域名、localhost 和白名單域名
+    if (origin.includes('netlify.app') || 
+        origin.includes('localhost') || 
+        origin.includes('127.0.0.1') ||
+        origin.includes('file://') ||
+        allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
