@@ -69,6 +69,15 @@ const memoryDB = {
       createdAt: new Date()
     }
   ],
+  comments: [
+    {
+      _id: 'comment_1',
+      postId: 'post_1',
+      authorId: 'test_user_1',
+      content: '這是一條測試評論',
+      createdAt: new Date()
+    }
+  ],
   follows: [],
   messages: [],
   notifications: []
@@ -512,6 +521,246 @@ app.get('/api/users/:userId/profile', async (req, res) => {
   } catch (error) {
     console.error('獲取用戶資料錯誤:', error);
     res.status(500).json({ error: '獲取用戶資料失敗' });
+  }
+});
+
+// ===== 文章互動 API =====
+
+// 獲取文章互動數據（點讚、評論、分享）
+app.get('/api/interactions/posts/:postId', async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const post = await Post.findById(req.params.postId);
+      if (!post) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+
+      res.json({
+        success: true,
+        interactions: {
+          likes: post.likes || 0,
+          comments: post.comments || 0,
+          shares: post.shares || 0,
+          views: post.views || 0
+        }
+      });
+    } else {
+      // 使用內存數據庫
+      const post = memoryDB.posts.find(p => p._id === req.params.postId);
+      if (!post) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+
+      res.json({
+        success: true,
+        interactions: {
+          likes: post.likes || 0,
+          comments: post.comments || 0,
+          shares: post.shares || 0,
+          views: post.views || 0
+        }
+      });
+    }
+  } catch (error) {
+    console.error('獲取文章互動數據錯誤:', error);
+    res.status(500).json({ error: '獲取文章互動數據失敗' });
+  }
+});
+
+// 點讚文章
+app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const post = await Post.findById(req.params.postId);
+      if (!post) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+
+      post.likes = (post.likes || 0) + 1;
+      await post.save();
+
+      res.json({
+        success: true,
+        message: '點讚成功',
+        likes: post.likes
+      });
+    } else {
+      // 使用內存數據庫
+      const post = memoryDB.posts.find(p => p._id === req.params.postId);
+      if (!post) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+
+      post.likes = (post.likes || 0) + 1;
+
+      res.json({
+        success: true,
+        message: '點讚成功',
+        likes: post.likes
+      });
+    }
+  } catch (error) {
+    console.error('點讚文章錯誤:', error);
+    res.status(500).json({ error: '點讚失敗' });
+  }
+});
+
+// 分享文章
+app.post('/api/interactions/posts/:postId/share', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const post = await Post.findById(req.params.postId);
+      if (!post) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+
+      post.shares = (post.shares || 0) + 1;
+      await post.save();
+
+      res.json({
+        success: true,
+        message: '分享成功',
+        shares: post.shares
+      });
+    } else {
+      // 使用內存數據庫
+      const post = memoryDB.posts.find(p => p._id === req.params.postId);
+      if (!post) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+
+      post.shares = (post.shares || 0) + 1;
+
+      res.json({
+        success: true,
+        message: '分享成功',
+        shares: post.shares
+      });
+    }
+  } catch (error) {
+    console.error('分享文章錯誤:', error);
+    res.status(500).json({ error: '分享失敗' });
+  }
+});
+
+// 獲取文章評論
+app.get('/api/interactions/posts/:postId/comments', async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const comments = await Comment.find({ postId: req.params.postId })
+        .populate('authorId', 'nickname avatar')
+        .sort({ createdAt: -1 });
+
+      res.json({
+        success: true,
+        comments: comments.map(comment => ({
+          id: comment._id,
+          content: comment.content,
+          author: {
+            id: comment.authorId._id,
+            nickname: comment.authorId.nickname,
+            avatar: comment.authorId.avatar
+          },
+          createdAt: comment.createdAt
+        }))
+      });
+    } else {
+      // 使用內存數據庫
+      const comments = memoryDB.comments.filter(c => c.postId === req.params.postId);
+      
+      res.json({
+        success: true,
+        comments: comments.map(comment => ({
+          id: comment._id,
+          content: comment.content,
+          author: {
+            id: comment.authorId,
+            nickname: comment.authorNickname || '匿名用戶',
+            avatar: comment.authorAvatar || 'https://picsum.photos/seed/default/100'
+          },
+          createdAt: comment.createdAt
+        }))
+      });
+    }
+  } catch (error) {
+    console.error('獲取評論錯誤:', error);
+    res.status(500).json({ error: '獲取評論失敗' });
+  }
+});
+
+// 添加評論
+app.post('/api/interactions/posts/:postId/comments', authenticateToken, async (req, res) => {
+  try {
+    const { content } = req.body;
+    
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({ error: '評論內容不能為空' });
+    }
+
+    if (isMongoConnected()) {
+      const comment = new Comment({
+        postId: req.params.postId,
+        authorId: req.user.id,
+        content: content.trim()
+      });
+
+      await comment.save();
+
+      // 更新文章評論數
+      await Post.findByIdAndUpdate(req.params.postId, {
+        $inc: { comments: 1 }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: '評論成功',
+        comment: {
+          id: comment._id,
+          content: comment.content,
+          author: {
+            id: req.user.id,
+            nickname: req.user.nickname || '用戶',
+            avatar: req.user.avatar || 'https://picsum.photos/seed/default/100'
+          },
+          createdAt: comment.createdAt
+        }
+      });
+    } else {
+      // 使用內存數據庫
+      const comment = {
+        _id: `comment_${Date.now()}`,
+        postId: req.params.postId,
+        authorId: req.user.id,
+        content: content.trim(),
+        createdAt: new Date()
+      };
+
+      memoryDB.comments.push(comment);
+
+      // 更新文章評論數
+      const post = memoryDB.posts.find(p => p._id === req.params.postId);
+      if (post) {
+        post.comments = (post.comments || 0) + 1;
+      }
+
+      res.status(201).json({
+        success: true,
+        message: '評論成功',
+        comment: {
+          id: comment._id,
+          content: comment.content,
+          author: {
+            id: req.user.id,
+            nickname: req.user.nickname || '用戶',
+            avatar: req.user.avatar || 'https://picsum.photos/seed/default/100'
+          },
+          createdAt: comment.createdAt
+        }
+      });
+    }
+  } catch (error) {
+    console.error('添加評論錯誤:', error);
+    res.status(500).json({ error: '評論失敗' });
   }
 });
 
