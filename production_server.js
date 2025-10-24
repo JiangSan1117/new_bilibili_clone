@@ -785,7 +785,7 @@ app.get('/api/interactions/posts/:postId', async (req, res) => {
   }
 });
 
-// 點讚文章
+// 點讚文章（切換點讚狀態）
 app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, res) => {
   try {
     if (isMongoConnected()) {
@@ -794,13 +794,17 @@ app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, 
         return res.status(404).json({ error: '文章不存在' });
       }
 
-      post.likes = (post.likes || 0) + 1;
+      // 簡化版本：每次點擊都增加點讚數
+      // TODO: 實現真正的點讚/取消點讚邏輯（需要Like模型）
+      const newLikes = (post.likes || 0) + 1;
+      post.likes = newLikes;
       await post.save();
 
       res.json({
         success: true,
         message: '點讚成功',
-        likes: post.likes
+        likes: newLikes,
+        isLiked: true // 總是返回 true（簡化版本）
       });
     } else {
       // 使用內存數據庫
@@ -814,7 +818,8 @@ app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, 
       res.json({
         success: true,
         message: '點讚成功',
-        likes: post.likes
+        likes: post.likes,
+        isLiked: true
       });
     }
   } catch (error) {
