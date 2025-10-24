@@ -714,6 +714,12 @@ app.post('/api/interactions/posts/:postId/comments', authenticateToken, async (r
     }
 
     if (isMongoConnected()) {
+      // 獲取用戶信息
+      const user = await User.findById(req.user.id).select('nickname avatar');
+      if (!user) {
+        return res.status(404).json({ error: '用戶不存在' });
+      }
+
       const comment = new Comment({
         postId: req.params.postId,
         authorId: req.user.id,
@@ -734,15 +740,17 @@ app.post('/api/interactions/posts/:postId/comments', authenticateToken, async (r
           id: comment._id,
           content: comment.content,
           author: {
-            id: req.user.id,
-            nickname: req.user.nickname || '用戶',
-            avatar: req.user.avatar || 'https://picsum.photos/seed/default/100'
+            id: user._id,
+            nickname: user.nickname,
+            avatar: user.avatar
           },
           createdAt: comment.createdAt
         }
       });
     } else {
       // 使用內存數據庫
+      const user = memoryDB.users.find(u => u._id === req.user.id);
+      
       const comment = {
         _id: `comment_${Date.now()}`,
         postId: req.params.postId,
@@ -767,8 +775,8 @@ app.post('/api/interactions/posts/:postId/comments', authenticateToken, async (r
           content: comment.content,
           author: {
             id: req.user.id,
-            nickname: req.user.nickname || '用戶',
-            avatar: req.user.avatar || 'https://picsum.photos/seed/default/100'
+            nickname: user?.nickname || '用戶',
+            avatar: user?.avatar || 'https://picsum.photos/seed/default/100'
           },
           createdAt: comment.createdAt
         }
