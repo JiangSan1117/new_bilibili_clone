@@ -233,6 +233,15 @@ const followSchema = new mongoose.Schema({
 
 const Follow = mongoose.model('Follow', followSchema);
 
+// 收藏模型
+const favoriteSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  postId: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Favorite = mongoose.model('Favorite', favoriteSchema);
+
 // 訊息模型
 const messageSchema = new mongoose.Schema({
   sender: { type: String, required: true },
@@ -555,6 +564,146 @@ app.post('/api/posts', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('創建文章錯誤:', error);
     res.status(500).json({ error: '創建文章失敗' });
+  }
+});
+
+// ===== 收藏API =====
+
+// 收藏文章
+app.post('/api/posts/:postId/favorite', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      // 檢查文章是否存在
+      const post = await Post.findById(req.params.postId);
+      if (!post) {
+        return res.status(404).json({ error: '文章不存在' });
+      }
+
+      // 檢查是否已收藏
+      const existingFavorite = await Favorite.findOne({
+        userId: req.user.id,
+        postId: req.params.postId
+      });
+
+      if (existingFavorite) {
+        return res.status(400).json({ error: '已經收藏過了' });
+      }
+
+      // 創建收藏
+      const favorite = new Favorite({
+        userId: req.user.id,
+        postId: req.params.postId
+      });
+
+      await favorite.save();
+
+      res.json({
+        success: true,
+        message: '收藏成功'
+      });
+    } else {
+      // 使用內存數據庫
+      res.json({
+        success: true,
+        message: '收藏成功（內存模式）'
+      });
+    }
+  } catch (error) {
+    console.error('收藏文章錯誤:', error);
+    res.status(500).json({ error: '收藏失敗' });
+  }
+});
+
+// 取消收藏
+app.delete('/api/posts/:postId/favorite', authenticateToken, async (req, res) => {
+  try {
+    if (isMongoConnected()) {
+      const result = await Favorite.findOneAndDelete({
+        userId: req.user.id,
+        postId: req.params.postId
+      });
+
+      if (!result) {
+        return res.status(404).json({ error: '未收藏此文章' });
+      }
+
+      res.json({
+        success: true,
+        message: '取消收藏成功'
+      });
+    } else {
+      // 使用內存數據庫
+      res.json({
+        success: true,
+        message: '取消收藏成功（內存模式）'
+      });
+    }
+  } catch (error) {
+    console.error('取消收藏錯誤:', error);
+    res.status(500).json({ error: '取消收藏失敗' });
+  }
+});
+
+// 獲取收藏列表
+app.get('/api/favorites', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    if (isMongoConnected()) {
+      // 獲取用戶的收藏列表
+      const favorites = await Favorite.find({ userId: req.user.id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      const postIds = favorites.map(f => f.postId);
+
+      // 獲取收藏的文章
+      const posts = await Post.find({ _id: { $in: postIds } })
+        .sort({ createdAt: -1 });
+
+      const total = await Favorite.countDocuments({ userId: req.user.id });
+
+      res.json({
+        success: true,
+        posts: posts.map(post => ({
+          _id: post._id,
+          id: post._id,
+          title: post.title,
+          content: post.content,
+          author: post.author,
+          authorId: post.authorId,
+          category: post.category,
+          mainTab: post.mainTab,
+          type: post.type,
+          city: post.city,
+          tags: post.tags,
+          images: post.images,
+          videos: post.videos,
+          likes: post.likes,
+          comments: post.comments,
+          views: post.views,
+          shares: post.shares,
+          createdAt: post.createdAt
+        })),
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      });
+    } else {
+      // 使用內存數據庫
+      res.json({
+        success: true,
+        posts: [],
+        total: 0,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      });
+    }
+  } catch (error) {
+    console.error('獲取收藏列表錯誤:', error);
+    res.status(500).json({ error: '獲取收藏列表失敗' });
   }
 });
 

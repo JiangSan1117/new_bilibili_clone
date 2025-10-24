@@ -423,6 +423,38 @@ class RealApiService {
     }
   }
   
+  // 獲取收藏文章列表
+  static Future<Map<String, dynamic>> getFavoritePosts({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/favorites?page=$page&limit=$limit'),
+        headers: await _getHeaders(),
+      );
+      
+      final data = json.decode(response.body);
+      
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'posts': data['posts'] ?? [],
+          'total': data['total'] ?? 0,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? '獲取收藏列表失敗',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': '網絡連接失敗: $e',
+      };
+    }
+  }
   
   // 發布文章
   static Future<Map<String, dynamic>> createPost({

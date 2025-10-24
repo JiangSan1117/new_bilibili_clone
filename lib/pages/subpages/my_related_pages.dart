@@ -206,96 +206,141 @@ class MyFriendsPage extends StatelessWidget {
   }
 }
 
-class MyCollectionsPage extends StatelessWidget {
+class MyCollectionsPage extends StatefulWidget {
   const MyCollectionsPage({super.key});
+
+  @override
+  State<MyCollectionsPage> createState() => _MyCollectionsPageState();
+}
+
+class _MyCollectionsPageState extends State<MyCollectionsPage> {
+  List<dynamic> _favoritePosts = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final result = await RealApiService.getFavoritePosts();
+
+      if (result['success'] == true) {
+        setState(() {
+          _favoritePosts = result['posts'] ?? [];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = result['error'] ?? '載入失敗';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = '載入失敗: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _subpageAppBar('我的收藏'),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: 10, // 模擬收藏文章數量
-        itemBuilder: (context, index) {
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.grey.shade300,
-                        child: Text(
-                          'U${index + 1}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '用戶${index + 1}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              '2小時前',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.more_vert, size: 20),
+                      const Icon(Icons.error_outline, size: 60, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(_error!, style: const TextStyle(color: Colors.grey)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadFavorites,
+                        child: const Text('重試'),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '收藏文章標題 ${index + 1}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                )
+              : _favoritePosts.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.bookmark_border, size: 60, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text('還沒有收藏任何文章', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _favoritePosts.length,
+                      itemBuilder: (context, index) {
+                        final post = _favoritePosts[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () {
+                              // TODO: 導航到文章詳情頁
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    post['title'] ?? '無標題',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    post['content'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.favorite, color: Colors.red.shade400, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text('${post['likes'] ?? 0}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                      const SizedBox(width: 16),
+                                      Icon(Icons.comment, color: Colors.grey.shade400, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text('${post['comments'] ?? 0}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                      const SizedBox(width: 16),
+                                      Icon(Icons.remove_red_eye, color: Colors.grey.shade400, size: 16),
+                                      const SizedBox(width: 4),
+                                      Text('${post['views'] ?? 0}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '這是收藏的文章內容摘要，展示了用戶收藏的精彩內容...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.favorite, color: Colors.red.shade400, size: 16),
-                      const SizedBox(width: 4),
-                      Text('${(index + 1) * 23}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                      const SizedBox(width: 16),
-                      Icon(Icons.comment, color: Colors.grey.shade400, size: 16),
-                      const SizedBox(width: 4),
-                      Text('${(index + 1) * 5}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                      const SizedBox(width: 16),
-                      Icon(Icons.bookmark, color: Colors.blue.shade400, size: 16),
-                      const SizedBox(width: 4),
-                      Text('${(index + 1) * 12}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 }
