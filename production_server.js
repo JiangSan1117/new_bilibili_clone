@@ -814,12 +814,16 @@ app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, 
 
       console.log('✅ 點讚成功 - 新點讚數:', newLikes);
 
-      res.json({
+      const response = {
         success: true,
         message: '點讚成功',
         likes: newLikes,
+        likeCount: newLikes, // 同時返回 likeCount 字段
         isLiked: true // 總是返回 true（簡化版本）
-      });
+      };
+      
+      console.log('📤 返回響應:', JSON.stringify(response));
+      res.json(response);
     } else {
       // 使用內存數據庫
       const post = memoryDB.posts.find(p => p._id === req.params.postId || p.id === req.params.postId);
