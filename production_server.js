@@ -208,6 +208,16 @@ const postSchema = new mongoose.Schema({
 
 const Post = mongoose.model('Post', postSchema);
 
+// 評論模型
+const commentSchema = new mongoose.Schema({
+  postId: { type: String, required: true },
+  authorId: { type: String, required: true },
+  content: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Comment = mongoose.model('Comment', commentSchema);
+
 // 關注模型
 const followSchema = new mongoose.Schema({
   follower: { type: String, required: true },
