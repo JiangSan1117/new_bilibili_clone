@@ -427,12 +427,16 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
 // 更新用戶資料
 app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   try {
+    console.log('📥 後端收到更新資料請求:', req.body);
     const { nickname, email, phone, location, avatar } = req.body;
+    console.log('📥 解構後: nickname=', nickname, ', email=', email, ', phone=', phone, ', location=', location);
     
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: '用戶不存在' });
     }
+
+    console.log('📥 更新前: phone=', user.phone, ', location=', user.location);
 
     // 更新允許的欄位
     if (nickname !== undefined) user.nickname = nickname;
@@ -441,7 +445,9 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
     if (location !== undefined) user.location = location;
     if (avatar !== undefined) user.avatar = avatar;
 
+    console.log('📥 更新後（保存前）: phone=', user.phone, ', location=', user.location);
     await user.save();
+    console.log('✅ 已保存到數據庫');
 
     // 計算統計數據
     const postsCount = await Post.countDocuments({ authorId: user._id });
@@ -805,33 +811,21 @@ app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, 
       }
 
       console.log('✅ 找到文章:', post._id || post.id);
-      console.log('📊 當前 likes 值:', post.likes, '類型:', typeof post.likes);
 
       // 簡化版本：每次點擊都增加點讚數
       // TODO: 實現真正的點讚/取消點讚邏輯（需要Like模型）
-      const currentLikes = post.likes ?? 0; // 使用空值合併運算符
-      const newLikes = currentLikes + 1;
-      
-      // 使用 findByIdAndUpdate 或 findOneAndUpdate 確保更新成功
-      const updateQuery = post.id ? { id: post.id } : { _id: post._id };
-      const updatedPost = await Post.findOneAndUpdate(
-        updateQuery,
-        { $set: { likes: newLikes } },
-        { new: true } // 返回更新後的文檔
-      );
+      const newLikes = (post.likes || 0) + 1;
+      post.likes = newLikes;
+      await post.save();
 
-      console.log('✅ 點讚成功 - 更新前:', currentLikes, '更新後:', updatedPost?.likes || newLikes);
+      console.log('✅ 點讚成功 - 新點讚數:', newLikes);
 
-      const response = {
+      res.json({
         success: true,
         message: '點讚成功',
         likes: newLikes,
-        likeCount: newLikes, // 同時返回 likeCount 字段
         isLiked: true // 總是返回 true（簡化版本）
-      };
-      
-      console.log('📤 返回響應:', JSON.stringify(response));
-      res.json(response);
+      });
     } else {
       // 使用內存數據庫
       const post = memoryDB.posts.find(p => p._id === req.params.postId || p.id === req.params.postId);
