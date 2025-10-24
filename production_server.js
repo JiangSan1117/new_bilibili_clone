@@ -805,14 +805,22 @@ app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, 
       }
 
       console.log('✅ 找到文章:', post._id || post.id);
+      console.log('📊 當前 likes 值:', post.likes, '類型:', typeof post.likes);
 
       // 簡化版本：每次點擊都增加點讚數
       // TODO: 實現真正的點讚/取消點讚邏輯（需要Like模型）
-      const newLikes = (post.likes || 0) + 1;
-      post.likes = newLikes;
-      await post.save();
+      const currentLikes = post.likes ?? 0; // 使用空值合併運算符
+      const newLikes = currentLikes + 1;
+      
+      // 使用 findByIdAndUpdate 或 findOneAndUpdate 確保更新成功
+      const updateQuery = post.id ? { id: post.id } : { _id: post._id };
+      const updatedPost = await Post.findOneAndUpdate(
+        updateQuery,
+        { $set: { likes: newLikes } },
+        { new: true } // 返回更新後的文檔
+      );
 
-      console.log('✅ 點讚成功 - 新點讚數:', newLikes);
+      console.log('✅ 點讚成功 - 更新前:', currentLikes, '更新後:', updatedPost?.likes || newLikes);
 
       const response = {
         success: true,
