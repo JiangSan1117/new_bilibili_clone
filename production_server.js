@@ -402,12 +402,65 @@ app.get('/api/auth/profile', authenticateToken, async (req, res) => {
         isVerified: user.isVerified,
         posts: postsCount,
         follows: followsCount,
-        friends: friendsCount
+        friends: friendsCount,
+        phone: user.phone || '',
+        location: user.location || '',
+        realName: user.realName || '',
+        idCardNumber: user.idCardNumber || ''
       }
     });
   } catch (error) {
     console.error('獲取用戶資料錯誤:', error);
     res.status(500).json({ error: '獲取用戶資料失敗' });
+  }
+});
+
+// 更新用戶資料
+app.put('/api/auth/profile', authenticateToken, async (req, res) => {
+  try {
+    const { nickname, email, phone, location, avatar } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: '用戶不存在' });
+    }
+
+    // 更新允許的欄位
+    if (nickname !== undefined) user.nickname = nickname;
+    if (email !== undefined) user.email = email;
+    if (phone !== undefined) user.phone = phone;
+    if (location !== undefined) user.location = location;
+    if (avatar !== undefined) user.avatar = avatar;
+
+    await user.save();
+
+    // 計算統計數據
+    const postsCount = await Post.countDocuments({ authorId: user._id });
+    const followsCount = await Follow.countDocuments({ follower: user._id });
+    const friendsCount = await Follow.countDocuments({ follower: user._id });
+
+    res.json({
+      success: true,
+      message: '資料更新成功',
+      user: {
+        id: user._id,
+        email: user.email,
+        nickname: user.nickname,
+        avatar: user.avatar,
+        levelNum: user.levelNum,
+        isVerified: user.isVerified,
+        posts: postsCount,
+        follows: followsCount,
+        friends: friendsCount,
+        phone: user.phone || '',
+        location: user.location || '',
+        realName: user.realName || '',
+        idCardNumber: user.idCardNumber || ''
+      }
+    });
+  } catch (error) {
+    console.error('更新用戶資料錯誤:', error);
+    res.status(500).json({ error: '更新用戶資料失敗' });
   }
 });
 

@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
-import '../../services/auth_service.dart';
-import '../../services/data_service.dart';
+import '../../services/real_api_service.dart';
 import '../../models/user_model.dart';
 
 class ProfileEditPage extends StatefulWidget {
@@ -44,15 +43,50 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   Future<void> _loadUserData() async {
     try {
-      final user = await DataService.getCurrentUser();
-      setState(() {
-        _currentUser = user;
-        _nicknameController.text = user?.nickname ?? '';
-        _emailController.text = user?.email ?? '';
-        _phoneController.text = user?.phone ?? '';
-        _locationController.text = user?.location ?? '';
-        _isLoading = false;
-      });
+      final result = await RealApiService.getCurrentUser();
+      
+      if (result['success'] == true && result['user'] != null) {
+        final userData = result['user'];
+        final user = User(
+          id: userData['id'] ?? '',
+          nickname: userData['nickname'] ?? '用戶',
+          avatarUrl: userData['avatar'] ?? 'https://via.placeholder.com/150',
+          levelNum: userData['levelNum'] ?? 1,
+          collections: userData['collections'] ?? 0,
+          follows: userData['follows'] ?? 0,
+          friends: userData['friends'] ?? 0,
+          posts: userData['posts'] ?? 0,
+          email: userData['email'] ?? '',
+          phone: userData['phone'] ?? '',
+          location: userData['location'] ?? '',
+          realName: userData['realName'] ?? '',
+          idCardNumber: userData['idCardNumber'] ?? '',
+          verificationStatus: userData['verificationStatus'] == 'verified'
+              ? VerificationStatus.verified
+              : VerificationStatus.unverified,
+          membershipType: userData['membershipType'] == 'verified'
+              ? MembershipType.verified
+              : MembershipType.free,
+          verificationDate: userData['verificationDate'] != null
+              ? DateTime.parse(userData['verificationDate'])
+              : null,
+          verificationNotes: userData['verificationNotes'] ?? '',
+        );
+        
+        setState(() {
+          _currentUser = user;
+          _nicknameController.text = user.nickname;
+          _emailController.text = user.email ?? '';
+          _phoneController.text = user.phone ?? '';
+          _locationController.text = user.location ?? '';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        _showSnackBar('載入用戶資料失敗: ${result['error'] ?? '未知錯誤'}');
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -133,30 +167,27 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     });
 
     try {
-      // 更新 Firebase 用戶資料
-      await AuthService.updateUserProfile(
-        displayName: _nicknameController.text.trim(),
+      // 更新用戶資料
+      final result = await RealApiService.updateUserProfile(
+        nickname: _nicknameController.text.trim(),
+        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+        phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+        location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
+        // avatar: _selectedAvatarPath, // TODO: 實現頭像上傳功能
       );
 
-      // 更新本地用戶資料
-      if (_currentUser != null) {
-        final updatedUser = _currentUser!.copyWith(
-          nickname: _nicknameController.text.trim(),
-          email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
-          phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
-          location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
-        );
-
-        // 這裡可以添加上傳頭像到雲端存儲的邏輯
-        if (_selectedImage != null) {
-          // TODO: 上傳頭像到雲端存儲
-          debugPrint('頭像上傳功能待實現: ${_selectedImage!.path}');
-        }
-
-        await DataService.updateUser(updatedUser);
-        
+      if (result['success'] == true) {
         _showSnackBar('個人資料更新成功！');
-        Navigator.of(context).pop();
+        
+        // 刷新用戶數據
+        await _loadUserData();
+        
+        // 返回上一頁
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } else {
+        _showSnackBar(result['error'] ?? '更新失敗');
       }
     } catch (e) {
       _showSnackBar('更新失敗: ${e.toString()}');

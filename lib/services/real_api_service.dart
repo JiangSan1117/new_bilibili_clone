@@ -171,6 +171,50 @@ class RealApiService {
     }
   }
   
+  // 更新用戶資料
+  static Future<Map<String, dynamic>> updateUserProfile({
+    String? nickname,
+    String? email,
+    String? phone,
+    String? location,
+    String? avatar,
+  }) async {
+    try {
+      final Map<String, dynamic> updates = {};
+      if (nickname != null) updates['nickname'] = nickname;
+      if (email != null) updates['email'] = email;
+      if (phone != null) updates['phone'] = phone;
+      if (location != null) updates['location'] = location;
+      if (avatar != null) updates['avatar'] = avatar;
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/auth/profile'),
+        headers: await _getHeaders(),
+        body: json.encode(updates),
+      );
+      
+      final data = json.decode(response.body);
+      
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'user': data['user'],
+          'message': data['message'] ?? '更新成功',
+        };
+      } else {
+        return {
+          'success': false,
+          'error': data['error'] ?? '更新失敗',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': '網絡連接失敗: $e',
+      };
+    }
+  }
+  
   // 用戶註冊
   static Future<Map<String, dynamic>> register({
     required String email,
