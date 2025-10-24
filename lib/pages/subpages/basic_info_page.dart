@@ -326,10 +326,13 @@ class _BasicInfoPageState extends State<BasicInfoPage> {
     return Container(
       padding: const EdgeInsets.all(16.0),
       child: ElevatedButton(
-        onPressed: () {
-          Navigator.of(context).push(
+        onPressed: () async {
+          // 導航到編輯頁面並等待返回
+          await Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => const ProfileEditPage()),
           );
+          // 返回後重新加載用戶數據
+          _loadUserData();
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,

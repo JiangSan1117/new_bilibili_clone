@@ -716,7 +716,7 @@ class RealApiService {
         return {
           'success': true,
           'isLiked': data['isLiked'] ?? false,
-          'likes': data['likeCount'] ?? 0,
+          'likeCount': data['likes'] ?? 0, // 修復字段名稱
         };
       } else {
         return {
