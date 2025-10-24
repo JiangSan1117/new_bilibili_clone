@@ -788,17 +788,31 @@ app.get('/api/interactions/posts/:postId', async (req, res) => {
 // 點讚文章（切換點讚狀態）
 app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, res) => {
   try {
+    console.log('📝 點讚請求 - postId:', req.params.postId, '用戶:', req.user.id);
+    
     if (isMongoConnected()) {
-      const post = await Post.findById(req.params.postId);
+      // 嘗試用 _id 或 id 字段查找文章
+      let post = await Post.findById(req.params.postId).catch(() => null);
+      
+      // 如果 findById 失敗，嘗試用 id 字段查找
       if (!post) {
+        post = await Post.findOne({ id: req.params.postId });
+      }
+      
+      if (!post) {
+        console.log('❌ 文章不存在:', req.params.postId);
         return res.status(404).json({ error: '文章不存在' });
       }
+
+      console.log('✅ 找到文章:', post._id || post.id);
 
       // 簡化版本：每次點擊都增加點讚數
       // TODO: 實現真正的點讚/取消點讚邏輯（需要Like模型）
       const newLikes = (post.likes || 0) + 1;
       post.likes = newLikes;
       await post.save();
+
+      console.log('✅ 點讚成功 - 新點讚數:', newLikes);
 
       res.json({
         success: true,
@@ -808,7 +822,7 @@ app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, 
       });
     } else {
       // 使用內存數據庫
-      const post = memoryDB.posts.find(p => p._id === req.params.postId);
+      const post = memoryDB.posts.find(p => p._id === req.params.postId || p.id === req.params.postId);
       if (!post) {
         return res.status(404).json({ error: '文章不存在' });
       }
@@ -823,8 +837,8 @@ app.post('/api/interactions/posts/:postId/like', authenticateToken, async (req, 
       });
     }
   } catch (error) {
-    console.error('點讚文章錯誤:', error);
-    res.status(500).json({ error: '點讚失敗' });
+    console.error('❌ 點讚文章錯誤:', error);
+    res.status(500).json({ error: '點讚失敗', details: error.message });
   }
 });
 
@@ -935,10 +949,20 @@ app.post('/api/interactions/posts/:postId/comments', authenticateToken, async (r
 
       await comment.save();
 
-      // 更新文章評論數
-      await Post.findByIdAndUpdate(req.params.postId, {
-        $inc: { comments: 1 }
-      });
+      // 更新文章評論數 - 支持兩種 ID 格式
+      console.log('📝 更新文章評論數 - postId:', req.params.postId);
+      let post = await Post.findById(req.params.postId).catch(() => null);
+      if (!post) {
+        post = await Post.findOne({ id: req.params.postId });
+      }
+      
+      if (post) {
+        post.comments = (post.comments || 0) + 1;
+        await post.save();
+        console.log('✅ 文章評論數已更新:', post.comments);
+      } else {
+        console.log('⚠️ 文章不存在，評論已保存但未更新文章計數');
+      }
 
       res.status(201).json({
         success: true,
@@ -969,7 +993,7 @@ app.post('/api/interactions/posts/:postId/comments', authenticateToken, async (r
       memoryDB.comments.push(comment);
 
       // 更新文章評論數
-      const post = memoryDB.posts.find(p => p._id === req.params.postId);
+      const post = memoryDB.posts.find(p => p._id === req.params.postId || p.id === req.params.postId);
       if (post) {
         post.comments = (post.comments || 0) + 1;
       }

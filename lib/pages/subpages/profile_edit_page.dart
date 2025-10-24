@@ -167,13 +167,24 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     });
 
     try {
-      // 更新用戶資料
+      // 更新用戶資料 - 只發送非空字段
+      final Map<String, String> updates = {};
+      
+      final nickname = _nicknameController.text.trim();
+      final email = _emailController.text.trim();
+      final phone = _phoneController.text.trim();
+      final location = _locationController.text.trim();
+      
+      if (nickname.isNotEmpty) updates['nickname'] = nickname;
+      if (email.isNotEmpty) updates['email'] = email;
+      if (phone.isNotEmpty) updates['phone'] = phone;
+      if (location.isNotEmpty) updates['location'] = location;
+      
       final result = await RealApiService.updateUserProfile(
-        nickname: _nicknameController.text.trim(),
-        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
-        phone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
-        location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
-        // avatar: _selectedAvatarPath, // TODO: 實現頭像上傳功能
+        nickname: updates.containsKey('nickname') ? updates['nickname'] : null,
+        email: updates.containsKey('email') ? updates['email'] : null,
+        phone: updates.containsKey('phone') ? updates['phone'] : null,
+        location: updates.containsKey('location') ? updates['location'] : null,
       );
 
       if (result['success'] == true) {
