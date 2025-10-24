@@ -665,23 +665,20 @@ class RealApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/interactions/posts/$postId/comment'),
+        Uri.parse('$baseUrl/interactions/posts/$postId/comments'),
         headers: await _getHeaders(),
         body: json.encode({
-          'postId': postId,
-          'userId': userId,
-          'username': username,
           'content': content,
         }),
       );
       
       final data = json.decode(response.body);
       
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return {
           'success': true,
           'comment': data['comment'],
-          'commentCount': data['commentCount'] ?? 0,
+          'message': data['message'] ?? '評論成功',
         };
       } else {
         return {
