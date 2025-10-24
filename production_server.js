@@ -93,6 +93,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean); // 過濾掉 undefined
 
+// CORS 配置 - 修復 Netlify 域名訪問問題
 app.use(cors({
   origin: function(origin, callback) {
     console.log('🌐 CORS 檢查 - Origin:', origin);
@@ -119,8 +120,13 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Type', 'Authorization'], // 暴露這些響應頭
+  optionsSuccessStatus: 204 // 某些舊版瀏覽器（IE11, 各種 SmartTV）在 204 上中止
 }));
+
+// 為所有預檢請求明確返回 CORS 頭
+app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
