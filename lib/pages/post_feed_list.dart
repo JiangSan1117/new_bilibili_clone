@@ -1,11 +1,13 @@
 // lib/pages/post_feed_list.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_data.dart';
 // import '../utils/app_widgets.dart'; // 移除贊助區相關導入
 import '../widgets/post_card.dart'; // 引入 PostCard
 import '../services/real_api_service.dart';
 import '../models/post_model.dart';
+import '../providers/post_provider.dart'; // 添加導入
 
 // ----------------------------------------------------
 // 文章列表元件 (PostFeedList) - 支援廣告插入
@@ -58,10 +60,15 @@ class PostFeedListState extends State<PostFeedList> {
       if (result['success'] == true) {
         final posts = List<Map<String, dynamic>>.from(result['posts'] ?? []);
         print('📰 PostFeedList: 獲取到 ${posts.length} 篇文章');
+        
         setState(() {
           _posts = posts;
           _isLoading = false;
         });
+
+        // 🔄 重要：初始化 PostProvider 中的文章數據
+        _initializePostProvider(posts);
+        
       } else {
         print('📰 PostFeedList: API返回失敗: ${result['error']}');
         setState(() {
@@ -76,6 +83,26 @@ class PostFeedListState extends State<PostFeedList> {
         _isLoading = false;
       });
     }
+  }
+
+  // 初始化 PostProvider 數據
+  void _initializePostProvider(List<Map<String, dynamic>> posts) {
+    final postProvider = Provider.of<PostProvider>(context, listen: false);
+    
+    // 將文章數據初始化到 PostProvider
+    for (var post in posts) {
+      final postId = post['_id'] ?? post['id'];
+      if (postId != null) {
+        final likes = post['likes'] ?? 0;
+        final comments = post['comments'] ?? 0;
+        
+        // 更新點讚數和評論數到 PostProvider
+        postProvider.updatePostLikes(postId.toString(), likes);
+        postProvider.updatePostComments(postId.toString(), comments);
+      }
+    }
+    
+    print('🔄 PostFeedList: 已初始化 ${posts.length} 篇文章到 PostProvider');
   }
 
   // 添加刷新方法供外部調用
@@ -171,30 +198,12 @@ class PostFeedListState extends State<PostFeedList> {
       itemBuilder: (context, index) {
         final post = filteredPosts[index];
 
-        // 創建Post對象
-        final postModel = Post(
-          id: post['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          title: post['title'] ?? '無標題',
-          content: post['content'] ?? '',
-          author: post['author'] ?? '匿名用戶',
-          authorId: post['authorId'] ?? 'unknown',
-          username: post['author'] ?? '匿名用戶',
-          category: post['category'] ?? '未分類',
-          mainTab: post['mainTab'] ?? '分享',
-          images: List<String>.from(post['images'] ?? []),
-          videos: List<String>.from(post['videos'] ?? []),
-          likes: post['likes'] ?? 0,
-          comments: post['comments'] ?? 0,
-          views: post['views'] ?? 0,
-          city: post['city'] ?? '未知地區',
-          type: post['type'] ?? '分享',
-          createdAt: post['createdAt'] != null 
-              ? DateTime.parse(post['createdAt']) 
-              : DateTime.now(),
-        );
+        // 使用 Post.fromMap 創建Post對象，正確解析 _id
+        final postModel = Post.fromMap(post);
 
+        // 使用 postModel.id（已經從 Post.fromMap 正確解析了 _id）
         return PostCard(
-          postId: post['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          postId: postModel.id,
           title: post['title'] ?? '無標題',
           username: post['author'] ?? '匿名用戶',
           category: post['category'] ?? '未分類',
@@ -206,6 +215,11 @@ class PostFeedListState extends State<PostFeedList> {
           city: post['city'] ?? '未知地區',
           userId: 'current_user_id', // 這裡應該從認證服務獲取當前用戶ID
           post: postModel,
+          onNeedsRefresh: () {
+            // 刷新列表
+            print('🔄 PostFeedList: 收到刷新請求，重新加載文章列表');
+            _loadPosts();
+          },
         );
       },
     );

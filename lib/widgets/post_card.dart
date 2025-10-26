@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
 import 'interaction_buttons.dart';
 import '../models/post_model.dart';
 import '../pages/post_detail_page.dart';
+import '../providers/post_provider.dart';
 
 // ----------------------------------------------------
 // 文章卡片元件
@@ -22,6 +24,7 @@ class PostCard extends StatefulWidget {
   final bool isDense; // 【NEW】: 最小間隙控制
   final String userId; // 當前用戶ID
   final Post? post; // 完整的Post對象，用於跳轉到詳細頁面
+  final VoidCallback? onNeedsRefresh; // 需要刷新時的回調
 
   const PostCard({
     super.key,
@@ -37,6 +40,7 @@ class PostCard extends StatefulWidget {
     this.isDense = false, // 預設為 false
     required this.userId,
     this.post,
+    this.onNeedsRefresh,
   });
 
   @override
@@ -53,6 +57,23 @@ class _PostCardState extends State<PostCard> {
   Widget build(BuildContext context) {
     final String abbreviatedCity = _getAbbreviatedCity(widget.city);
 
+    // 使用 Consumer 包裹整個卡片，確保點讚數更新時整個卡片重建
+    return Consumer<PostProvider>(
+      builder: (context, postProvider, child) {
+        // 從 PostProvider 獲取最新的點讚數
+        final currentLikes = postProvider.getPostLikes(
+          widget.postId, 
+          defaultLikes: widget.likes,
+        );
+        
+        debugPrint('🔄 PostCard Consumer: postId=${widget.postId}, likes=$currentLikes');
+
+        return _buildCardContent(context, abbreviatedCity, currentLikes);
+      },
+    );
+  }
+
+  Widget _buildCardContent(BuildContext context, String abbreviatedCity, int currentLikes) {
     // 處理通知樣式 (保持與原始碼一致的通知卡片間隙)
     if (widget.notificationText != null) {
       return Card(
@@ -96,14 +117,21 @@ class _PostCardState extends State<PostCard> {
           borderRadius: BorderRadius.circular(0)), // 【FIXED】: 移除圓角
       color: Theme.of(context).cardTheme.color, // 【FIXED】: 文章背景使用主題顏色
       child: InkWell(
-        onTap: () {
+        onTap: () async {
           if (widget.post != null) {
-            Navigator.push(
+            // 導航到詳情頁，並等待返回
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => PostDetailPage(post: widget.post!),
               ),
             );
+            
+            // 如果返回時需要刷新（例如點讚了），通知父組件刷新列表
+            if (result == true && mounted) {
+              debugPrint('文章詳情頁返回，需要刷新列表');
+              widget.onNeedsRefresh?.call();
+            }
           } else {
             debugPrint('點擊文章: ${widget.title} (無Post對象)');
           }
@@ -160,11 +188,15 @@ class _PostCardState extends State<PostCard> {
                     ],
                   ),
                   const Spacer(),
-                  // 讚
-                  const Icon(FontAwesomeIcons.thumbsUp,
-                      size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(widget.likes.toString()),
+                  // 讚 - 直接使用從 Consumer 獲取的 currentLikes
+                  Row(
+                    children: [
+                      const Icon(FontAwesomeIcons.thumbsUp,
+                          size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(currentLikes.toString()), // 使用 Consumer 提供的點讚數
+                    ],
+                  ),
                   const SizedBox(width: 12),
                   // 點閱
                   const Icon(FontAwesomeIcons.eye,

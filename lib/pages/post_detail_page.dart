@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/post_model.dart';
 import '../widgets/interaction_buttons.dart';
 import '../providers/auth_provider.dart';
+import '../providers/post_provider.dart';
 import '../services/real_api_service.dart';
 
 class PostDetailPage extends StatefulWidget {
@@ -24,6 +25,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   String? _error;
   final TextEditingController _commentController = TextEditingController();
   late Post _currentPost; // 添加當前文章狀態
+  bool _needsRefresh = false; // 標記是否需要刷新列表
 
   @override
   void initState() {
@@ -287,7 +289,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // 愛心按鈕
+                // 修復點讚按鈕
                 InkWell(
                   onTap: () async {
                     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -299,25 +301,40 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     }
 
                     try {
+                      setState(() {
+                        _isLoading = true;
+                      });
+
                       final result = await RealApiService.toggleLikePost(
                         postId: _currentPost.id,
                         userId: authProvider.currentUser?['id'] ?? 'current_user',
                       );
 
                       if (result['success'] == true) {
+                        // 從多個可能的字段中獲取點讚數
+                        final newLikeCount = result['likeCount'] ?? result['likes'] ?? (_currentPost.likes + 1);
+                        
+                        setState(() {
+                          _currentPost = _currentPost.copyWith(
+                            likes: newLikeCount,
+                          );
+                        });
+                        
+                        // 🔔 更新全局狀態（影響列表頁）
+                        Provider.of<PostProvider>(context, listen: false)
+                            .updatePostLikes(_currentPost.id, newLikeCount);
+                        
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(result['isLiked'] ? '已點讚' : '已取消點讚'),
-                            backgroundColor: result['isLiked'] ? Colors.red : Colors.grey,
+                            backgroundColor: Colors.green,
                           ),
                         );
-                        // 更新點讚數
-                        setState(() {
-                          _currentPost = _currentPost.copyWith(
-                            likes: result['likes'] ?? _currentPost.likes,
-                          );
-                        });
-                        print('✅ 點讚成功: isLiked=${result['isLiked']}, likes=${result['likes']}');
+                        
+                        print('✅ 點讚成功: isLiked=${result['isLiked']}, likeCount=$newLikeCount');
+                        
+                        // 標記需要刷新列表
+                        _needsRefresh = true;
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('點讚失敗: ${result['error']}')),
@@ -327,6 +344,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('網絡錯誤: $e')),
                       );
+                    } finally {
+                      setState(() {
+                        _isLoading = false;
+                      });
                     }
                   },
                   borderRadius: BorderRadius.circular(20),
@@ -730,6 +751,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // 返回時傳遞刷新標記
+            Navigator.pop(context, _needsRefresh);
+          },
+        ),
       ),
       body: Column(
         children: [

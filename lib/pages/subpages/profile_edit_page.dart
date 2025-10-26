@@ -156,6 +156,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
+  // 修復保存個人資料方法
   Future<void> _saveProfile() async {
     if (_nicknameController.text.trim().isEmpty) {
       _showSnackBar('請輸入暱稱');
@@ -167,40 +168,56 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     });
 
     try {
-      // 更新用戶資料 - 只發送非空字段
-      final Map<String, String> updates = {};
+      print('📤 開始更新個人資料...');
       
       final nickname = _nicknameController.text.trim();
       final email = _emailController.text.trim();
       final phone = _phoneController.text.trim();
       final location = _locationController.text.trim();
       
-      if (nickname.isNotEmpty) updates['nickname'] = nickname;
-      if (email.isNotEmpty) updates['email'] = email;
-      if (phone.isNotEmpty) updates['phone'] = phone;
-      if (location.isNotEmpty) updates['location'] = location;
-      
+      print('📤 準備發送: nickname=$nickname, email=$email, phone=$phone, location=$location');
+
       final result = await RealApiService.updateUserProfile(
-        nickname: updates.containsKey('nickname') ? updates['nickname'] : null,
-        email: updates.containsKey('email') ? updates['email'] : null,
-        phone: updates.containsKey('phone') ? updates['phone'] : null,
-        location: updates.containsKey('location') ? updates['location'] : null,
+        nickname: nickname.isNotEmpty ? nickname : null,
+        email: email.isNotEmpty ? email : null,
+        phone: phone.isNotEmpty ? phone : null,
+        location: location.isNotEmpty ? location : null,
       );
+
+      print('📤 更新結果: $result');
 
       if (result['success'] == true) {
         _showSnackBar('個人資料更新成功！');
         
-        // 刷新用戶數據
-        await _loadUserData();
-        
-        // 返回上一頁
-        if (mounted) {
-          Navigator.of(context).pop();
+        // 🔧 修復：確保返回完整的用戶數據
+        if (result['user'] != null) {
+          final updatedUser = Map<String, dynamic>.from(result['user']);
+          print('✅ ProfileEditPage: 返回完整用戶數據: $updatedUser');
+          print('✅ ProfileEditPage: phone=${updatedUser['phone']}, location=${updatedUser['location']}');
+          
+          // 確保返回完整的數據
+          if (mounted) {
+            Navigator.of(context).pop(updatedUser);
+          }
+        } else {
+          // 如果 API 沒有返回 user，構造一個包含更新字段的對象
+          final updatedData = {
+            'nickname': nickname,
+            'email': email,
+            'phone': phone,
+            'location': location,
+          };
+          print('⚠️ ProfileEditPage: API 未返回 user，返回更新字段: $updatedData');
+          
+          if (mounted) {
+            Navigator.of(context).pop(updatedData);
+          }
         }
       } else {
         _showSnackBar(result['error'] ?? '更新失敗');
       }
     } catch (e) {
+      print('❌ 更新失敗: $e');
       _showSnackBar('更新失敗: ${e.toString()}');
     } finally {
       setState(() {

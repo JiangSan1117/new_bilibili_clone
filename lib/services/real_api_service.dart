@@ -1,7 +1,6 @@
 // lib/services/real_api_service.dart
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -9,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../models/post_model.dart';
 
-// Web 專用導入
-import 'dart:html' as html show window;
+// 條件導入：只在 Web 平台導入 dart:html
+import 'package:universal_html/html.dart' as html;
 
 class RealApiService {
   static const String baseUrl = 'https://bilibili-backend.onrender.com/api';
@@ -171,7 +170,7 @@ class RealApiService {
     }
   }
   
-  // 更新用戶資料
+  // 修復更新用戶資料方法
   static Future<Map<String, dynamic>> updateUserProfile({
     String? nickname,
     String? email,
@@ -180,6 +179,8 @@ class RealApiService {
     String? avatar,
   }) async {
     try {
+      print('📤 RealApiService: 開始更新用戶資料...');
+      
       final Map<String, dynamic> updates = {};
       if (nickname != null) updates['nickname'] = nickname;
       if (email != null) updates['email'] = email;
@@ -187,18 +188,31 @@ class RealApiService {
       if (location != null) updates['location'] = location;
       if (avatar != null) updates['avatar'] = avatar;
 
+      // 確保至少發送一個字段
+      if (updates.isEmpty) {
+        return {
+          'success': false,
+          'error': '沒有提供要更新的資料',
+        };
+      }
+
+      print('📤 RealApiService: 發送的更新數據: $updates');
+
       final response = await http.put(
         Uri.parse('$baseUrl/auth/profile'),
         headers: await _getHeaders(),
         body: json.encode(updates),
       );
       
+      print('📤 RealApiService: 響應狀態碼: ${response.statusCode}');
+      print('📤 RealApiService: 響應內容: ${response.body}');
+      
       final data = json.decode(response.body);
       
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'user': data['user'],
+          'user': data['user'], // 確保返回完整的用戶對象
           'message': data['message'] ?? '更新成功',
         };
       } else {
@@ -208,6 +222,7 @@ class RealApiService {
         };
       }
     } catch (e) {
+      print('❌ RealApiService: 更新用戶資料錯誤: $e');
       return {
         'success': false,
         'error': '網絡連接失敗: $e',
@@ -716,7 +731,7 @@ class RealApiService {
         return {
           'success': true,
           'isLiked': data['isLiked'] ?? false,
-          'likeCount': data['likes'] ?? 0, // 修復字段名稱
+          'likeCount': data['likeCount'] ?? data['likes'] ?? 0, // 修復字段名稱，支持多個可能的字段
         };
       } else {
         return {

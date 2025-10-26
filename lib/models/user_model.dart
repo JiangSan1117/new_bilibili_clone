@@ -56,18 +56,21 @@ class User {
   });
 
   factory User.fromMap(Map<String, dynamic> map) {
-    return User(
+    print('🔄 User.fromMap: 開始映射用戶數據');
+    print('🔄 User.fromMap: 原始數據 - phone: ${map['phone']}, location: ${map['location']}');
+    
+    final user = User(
       id: map['id'] ?? '',
       nickname: map['nickname'] ?? '',
-      avatarUrl: map['avatarUrl'] ?? '',
+      avatarUrl: map['avatarUrl'] ?? map['avatar'] ?? '',
       levelNum: map['level_num'] ?? map['levelNum'] ?? 1,
       collections: map['collections'] ?? 0,
       follows: map['follows'] ?? 0,
       friends: map['friends'] ?? 0,
       posts: map['posts'] ?? 0,
       email: map['email'],
-      phone: map['phone'],
-      location: map['location'],
+      phone: map['phone'],  // 🔧 確保這裡正確映射
+      location: map['location'],  // 🔧 確保這裡正確映射
       realName: map['realName'],
       idCardNumber: map['idCardNumber'],
       verificationStatus: _parseVerificationStatus(map['verificationStatus']),
@@ -77,6 +80,9 @@ class User {
           : null,
       verificationNotes: map['verificationNotes'],
     );
+    
+    print('✅ User.fromMap: 映射完成 - phone: ${user.phone}, location: ${user.location}');
+    return user;
   }
 
   static VerificationStatus _parseVerificationStatus(String? status) {

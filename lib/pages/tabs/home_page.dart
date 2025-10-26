@@ -110,18 +110,22 @@ class HomePageState extends State<HomePage>
                         height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceVariant,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           children: [
                             Icon(Icons.search,
-                                size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                size: 18, color: Colors.grey.shade600),
                             const SizedBox(width: 8),
                             Text(
                               '搜索感興趣的內容...',
                               style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+                                  color: Colors.grey.shade600, fontSize: 14),
                             ),
                           ],
                         ),

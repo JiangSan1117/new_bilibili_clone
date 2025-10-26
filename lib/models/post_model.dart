@@ -40,8 +40,31 @@ class Post {
 
   // 从 Map 转换
   factory Post.fromMap(Map<String, dynamic> map, {String? id}) {
+    // 優先使用 MongoDB 的 _id 字段
+    String postId;
+    
+    if (id != null) {
+      postId = id;
+      print('📝 Post.fromMap: 使用傳入的 id=$id');
+    } else if (map['_id'] != null) {
+      // 如果 _id 是 Map 類型（如 {"$oid": "..."}），提取其字符串值
+      if (map['_id'] is Map && map['_id']['\$oid'] != null) {
+        postId = map['_id']['\$oid'];
+        print('📝 Post.fromMap: 從 Map 提取 _id=${postId}');
+      } else {
+        postId = map['_id'].toString();
+        print('📝 Post.fromMap: 使用 _id=${postId}');
+      }
+    } else if (map['id'] != null) {
+      postId = map['id'].toString();
+      print('📝 Post.fromMap: 使用 id=${postId}');
+    } else {
+      postId = DateTime.now().millisecondsSinceEpoch.toString();
+      print('⚠️ Post.fromMap: 生成臨時 ID=${postId}');
+    }
+    
     return Post(
-      id: id ?? map['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: postId,
       title: map['title'] ?? '',
       content: map['content'] ?? '',
       author: map['author'] ?? '',

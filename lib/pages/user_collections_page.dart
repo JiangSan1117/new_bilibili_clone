@@ -118,8 +118,10 @@ class _UserCollectionsPageState extends State<UserCollectionsPage> {
           separatorBuilder: (context, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final post = _collections[index];
+            // 優先使用 _id，然後 id
+            final postId = post['_id'] ?? post['id'] ?? '';
             return PostCard(
-              postId: post['id'] ?? '',
+              postId: postId,
               title: post['title'] ?? '',
               username: post['author'] ?? '',
               category: post['category'] ?? '',

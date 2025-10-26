@@ -40,42 +40,25 @@ class _BasicInfoPageState extends State<BasicInfoPage> {
 
         if (result['success'] == true && result['user'] != null) {
           final userData = result['user'];
-          final user = User(
-            id: userData['id'] ?? '',
-            nickname: userData['nickname'] ?? '用戶',
-            avatarUrl: userData['avatar'] ?? 'https://via.placeholder.com/150',
-            levelNum: userData['levelNum'] ?? 1,
-            collections: userData['collections'] ?? 0,
-            follows: userData['follows'] ?? 0,
-            friends: userData['friends'] ?? 0,
-            posts: userData['posts'] ?? 0,
-            email: userData['email'] ?? '',
-            phone: userData['phone'] ?? '',
-            location: userData['location'] ?? '',
-            realName: userData['realName'] ?? '',
-            idCardNumber: userData['idCardNumber'] ?? '',
-            verificationStatus: userData['verificationStatus'] == 'verified'
-                ? VerificationStatus.verified
-                : VerificationStatus.unverified,
-            membershipType: userData['membershipType'] == 'verified'
-                ? MembershipType.verified
-                : MembershipType.free,
-            verificationDate: userData['verificationDate'] != null
-                ? DateTime.parse(userData['verificationDate'])
-                : null,
-            verificationNotes: userData['verificationNotes'] ?? '',
-          );
+          print('📥 BasicInfoPage._loadUserData: 收到用戶資料: $userData');
+          print('📞 BasicInfoPage._loadUserData: 原始數據 - 電話: ${userData['phone']}, 地區: ${userData['location']}');
+          
+          // 🔧 修復：使用 User.fromMap 確保所有字段正確映射
+          final user = User.fromMap(userData);
 
           setState(() {
             _currentUser = user;
             _isLoading = false;
           });
+          
+          print('✅ BasicInfoPage._loadUserData: 用戶數據加載完成 - 電話: ${user.phone}, 地區: ${user.location}');
         } else {
           // 令牌無效，清除用戶資料
           setState(() {
             _currentUser = null;
             _isLoading = false;
           });
+          print('❌ BasicInfoPage._loadUserData: 加載用戶數據失敗: ${result['error']}');
         }
       } else {
         // 沒有令牌，用戶未登入
@@ -83,6 +66,7 @@ class _BasicInfoPageState extends State<BasicInfoPage> {
           _currentUser = null;
           _isLoading = false;
         });
+        print('⚠️ BasicInfoPage._loadUserData: 用戶未登入');
       }
     } catch (e) {
       // 如果發生錯誤，清除用戶資料
@@ -90,7 +74,50 @@ class _BasicInfoPageState extends State<BasicInfoPage> {
         _currentUser = null;
         _isLoading = false;
       });
+      print('❌ BasicInfoPage._loadUserData: 加載用戶數據異常: $e');
     }
+  }
+
+  // 添加顯示 SnackBar 的方法
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  // 新增：合併用戶數據的方法
+  User _mergeUserData(User currentUser, Map<String, dynamic> updatedData) {
+    print('🔄 _mergeUserData: 開始合併用戶數據');
+    print('🔄 當前用戶 - phone: ${currentUser.phone}, location: ${currentUser.location}');
+    print('🔄 更新數據 - phone: ${updatedData['phone']}, location: ${updatedData['location']}');
+    
+    return User(
+      id: currentUser.id,
+      nickname: updatedData['nickname'] ?? currentUser.nickname,
+      email: updatedData['email'] ?? currentUser.email,
+      phone: updatedData['phone'] ?? currentUser.phone ?? '',
+      location: updatedData['location'] ?? currentUser.location ?? '',
+      avatarUrl: updatedData['avatar'] ?? updatedData['avatarUrl'] ?? currentUser.avatarUrl,
+      levelNum: updatedData['levelNum'] ?? currentUser.levelNum,
+      collections: updatedData['collections'] ?? currentUser.collections,
+      follows: updatedData['follows'] ?? currentUser.follows,
+      friends: updatedData['friends'] ?? currentUser.friends,
+      posts: updatedData['posts'] ?? currentUser.posts,
+      realName: updatedData['realName'] ?? currentUser.realName,
+      idCardNumber: updatedData['idCardNumber'] ?? currentUser.idCardNumber,
+      verificationStatus: (updatedData['isVerified'] == true || 
+                          updatedData['verificationStatus'] == 'verified')
+          ? VerificationStatus.verified
+          : currentUser.verificationStatus,
+      membershipType: (updatedData['membershipType'] == 'verified')
+          ? MembershipType.verified
+          : currentUser.membershipType,
+      verificationDate: currentUser.verificationDate,
+      verificationNotes: currentUser.verificationNotes,
+    );
   }
 
   @override
@@ -134,6 +161,16 @@ class _BasicInfoPageState extends State<BasicInfoPage> {
             backgroundColor: Colors.white,
             foregroundColor: Colors.black87,
             elevation: 0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  print('🔄 BasicInfoPage: 手動刷新資料');
+                  _loadUserData();
+                },
+                tooltip: '刷新資料',
+              ),
+            ],
           ),
           body: _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -213,9 +250,9 @@ class _BasicInfoPageState extends State<BasicInfoPage> {
         ),
         const SizedBox(height: 12),
         
-        _buildInfoItem('電子郵件', user.email ?? '未提供'),
-        _buildInfoItem('電話號碼', user.phone ?? '未提供'),
-        _buildInfoItem('所在地區', user.location ?? '未提供'),
+        _buildInfoItem('電子郵件', user.email?.isNotEmpty == true ? user.email! : '未提供'),
+        _buildInfoItem('電話號碼', user.phone?.isNotEmpty == true ? user.phone! : '未提供'),
+        _buildInfoItem('所在地區', user.location?.isNotEmpty == true ? user.location! : '未提供'),
         
         _buildDivider(),
         
@@ -322,17 +359,48 @@ class _BasicInfoPageState extends State<BasicInfoPage> {
     );
   }
 
+  // 修復底部編輯按鈕
   Widget _buildBottomEditButton(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       child: ElevatedButton(
         onPressed: () async {
-          // 導航到編輯頁面並等待返回
-          await Navigator.of(context).push(
+          print('🔄 BasicInfoPage: 打開編輯頁面');
+          
+          // 導航到編輯頁面並等待返回的用戶數據
+          final updatedUser = await Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => const ProfileEditPage()),
           );
-          // 返回後重新加載用戶數據
-          _loadUserData();
+          
+          // 如果返回了更新後的用戶數據，立即更新界面
+          if (updatedUser != null && updatedUser is Map<String, dynamic>) {
+            print('🔄 BasicInfoPage: 收到更新後的用戶數據: $updatedUser');
+            print('🔄 BasicInfoPage: 更新數據中的 phone=${updatedUser['phone']}, location=${updatedUser['location']}');
+            
+            // 🔧 修復：使用 _mergeUserData 合併數據
+            if (_currentUser != null) {
+              setState(() {
+                _currentUser = _mergeUserData(_currentUser!, updatedUser);
+                print('📥 BasicInfoPage: 更新後的用戶資料 - 電話: ${_currentUser!.phone}, 地區: ${_currentUser!.location}');
+              });
+            } else {
+              // 如果當前用戶為空，直接創建新的用戶對象
+              setState(() {
+                _currentUser = User.fromMap(updatedUser);
+                print('📥 BasicInfoPage: 創建新用戶對象 - 電話: ${_currentUser!.phone}, 地區: ${_currentUser!.location}');
+              });
+            }
+            
+            _showSnackBar('資料更新成功！');
+            
+            // 🔧 重要修復：移除立即重新加載，避免覆蓋正確的數據
+            // 如果需要從服務器刷新，請使用右上角的刷新按鈕
+            // _loadUserData(); // 註釋掉這行，避免覆蓋剛更新的正確數據
+          } else {
+            print('⚠️ BasicInfoPage: 未收到有效更新數據');
+            // 如果沒有返回數據，仍然重新加載以確保數據同步
+            _loadUserData();
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,

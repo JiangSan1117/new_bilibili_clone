@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'pages/main_page.dart';
 import 'providers/auth_provider.dart';
+import 'providers/post_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,8 +23,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AuthProvider()..checkAuthStatus(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()..checkAuthStatus()),
+        ChangeNotifierProvider(create: (context) => PostProvider()),
+      ],
       child: MaterialApp(
         title: '想享 App',
         theme: ThemeData(
