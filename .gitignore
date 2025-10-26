@@ -18,7 +18,8 @@ yarn-error.log*
 .packages
 .pub-cache/
 .pub/
-/build/
+/build/*
+!/build/web/
 
 # Android
 /android/app/debug
