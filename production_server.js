@@ -85,7 +85,8 @@ const memoryDB = {
 
 // 中間件 - CORS 配置
 const allowedOrigins = [
-  'https://merry-kulfi-eb044d.netlify.app',
+  'https://new-bilibili-clone.pages.dev', // Cloudflare Pages
+  'https://merry-kulfi-eb044d.netlify.app', // Netlify (舊)
   'http://localhost:3000',
   'http://localhost:8080',
   'http://127.0.0.1:5500', // VSCode Live Server
